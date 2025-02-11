@@ -44,9 +44,32 @@ const agg = (field, proj, mark) => [{
     ...proj(field),
   },
 }, {
-  $addFields: { mark },
+  $addFields: {
+    mark,
+    et: {
+      $dateToParts: {
+        date: '$ts_event',
+        timezone: 'America/New_York',
+      },
+    },
+  },
 }, {
   $match: { mark: { $ne: null } },
+}, {
+  $addFields: {
+    lgMark: { $log10: '$mark' },
+    etDate: {
+      $dateFromParts: { year: '$et.year', month: '$et.month', day: '$et.day' },
+    },
+    etTimeOfDay: {
+      $add: [
+        { $multiply: ['$et.hour', 60] },
+        '$et.minute',
+        { $divide: ['$et.second', 60] },
+        { $divide: ['$et.millisecond', 60e3] },
+      ],
+    },
+  },
 }, {
   $merge: { into: 'prices_cleaned_tmp' },
 }];

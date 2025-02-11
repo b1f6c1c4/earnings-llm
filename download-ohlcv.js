@@ -47,14 +47,20 @@ const api = throttle((body) => fetch('https://hist.databento.com/v0/timeseries.g
 }));
 
 const loadPrice = (client, schema, func) => async (doc) => {
+  const prices = client.db().collection('prices');
   const { _id: { symbol, quarter }, date, s } = doc;
-  if (!s || !s.datasets.includes('EQUS.MINI')) {
+  if (!s || !s.datasets.includes('XNAS.ITCH')) {
     console.dir(doc);
     return;
   }
+  const found = await prices.findOne({ _id: { symbol, date }, [schema]: { $exists: true, $ne: [] } });
+  if (found) {
+    return;
+  }
   const [start, end] = func(date);
+  // console.log(`working on ${symbol} from ${start} to ${end} for ${schema}`);
   const body = {
-    dataset: 'EQUS.MINI',
+    dataset: 'XNAS.ITCH',
     symbols: s.s,
     schema,
     start,
@@ -74,7 +80,6 @@ const loadPrice = (client, schema, func) => async (doc) => {
   const data = await response.text();
   const entries = data ? data.trim().split('\n').map(s => JSON.parse(s)) : [];
   console.log(`writing ${entries.length} ${schema} results to ${symbol} ${quarter}`);
-  const prices = client.db().collection('prices');
   await prices.updateOne({ _id: { symbol, date } }, {
     $set: { [schema]: entries },
   }, {
