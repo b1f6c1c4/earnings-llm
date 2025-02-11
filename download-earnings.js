@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fs = require('node:fs');
 const finnhub = require('finnhub');
 const { MongoClient } = require('mongodb');
@@ -22,7 +23,7 @@ const download = () => new Promise((resolve, reject) => {
   const earnings = client.db().collection('earnings');
   const data = await download();
   console.log(`${data.length} earnings entry downloaded`);
-  earnings.insertMany(data.map(d => ({
+  await earnings.insertMany(data.map(d => ({
     _id: {
       symbol: d.symbol,
       quarter: `${d.year}Q${d.quarter}`,
