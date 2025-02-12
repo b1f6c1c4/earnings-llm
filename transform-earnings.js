@@ -40,7 +40,7 @@ const agg = (client) => throttle(async (doc) => {
         as: 'indexes',
       },
     }, {
-      $project: { _id: 0, d: { $divide: [{ $subtract: [ '$ts_event', date ] }, 86400e3] }, mark: 1, lgMark: 1, volume: 1, high: 1, low: 1, indexes: { $arrayToObject: '$indexes' } },
+      $project: { _id: 0, d: { $divide: [{ $subtract: [ '$ts_event', date ] }, 86400e3] }, mark: 1, lgMark: 1, volume: 1, high: 1, low: 1, close: 1, indexes: { $arrayToObject: '$indexes' } },
     }],
     earningDay: [{
       $match: { ts_event: { $gte: t('09:30'), $lt: t('16:00') }, 'meta.symbol': symbol, 'meta.interval': '1m', schema: 'ohlcv-1m' },
@@ -48,10 +48,10 @@ const agg = (client) => throttle(async (doc) => {
       $bucket: {
         groupBy: '$etTimeOfDay',
         boundaries: [9.5, 10.0, 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 15.5, 16.0].map(x => x*60),
-        output: { count: { $count: {} }, high: { $max: '$high' }, low: { $min: '$low' }, volume: { $sum: '$volume' }, mark: { $avg: '$mark' } },
+        output: { count: { $count: {} }, open: { $first: '$open' }, close: { $last: '$close' }, high: { $max: '$high' }, low: { $min: '$low' }, volume: { $sum: '$volume' }, mark: { $avg: '$mark' } },
       },
     }, {
-      $project: { _id: 0, count: 1, etTimeOfDay: '$_id', mark: 1, lgMark: { $log10: '$mark' }, volume: 1, high: 1, low: 1 },
+      $project: { _id: 0, count: 1, etTimeOfDay: '$_id', mark: 1, lgMark: { $log10: '$mark' }, volume: 1, high: 1, low: 1, open: 1, close: 1 },
     }],
     afterMarket: [{
       $match: { ts_event: { $gte: t('16:00'), $lt: t('19:00') }, 'meta.symbol': symbol, 'meta.interval': '1m' },
@@ -81,13 +81,13 @@ const agg = (client) => throttle(async (doc) => {
       $bucket: {
         groupBy: '$etTimeOfDay',
         boundaries: [9.5, 10.0, 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 15.5, 16.0].map(x => x*60),
-        output: { count: { $count: {} }, high: { $max: '$high' }, low: { $min: '$low' }, volume: { $sum: '$volume' }, mark: { $avg: '$mark' } },
+        output: { count: { $count: {} }, open: { $first: '$open' }, close: { $last: '$close' }, high: { $max: '$high' }, low: { $min: '$low' }, volume: { $sum: '$volume' }, mark: { $avg: '$mark' } },
       },
     }, {
-      $project: { _id: 0, count: 1, etTimeOfDay: '$_id', mark: 1, lgMark: { $log10: '$mark' }, volume: 1, high: 1, low: 1 },
+      $project: { _id: 0, count: 1, etTimeOfDay: '$_id', mark: 1, lgMark: { $log10: '$mark' }, volume: 1, high: 1, low: 1, open: 1, close: 1 },
     }],
     nextDayBooks: [{
-      $match: { ts_event: { $gte: t('09:30', 1), $lte: t('19:00', 1) }, 'meta.symbol': symbol, 'meta.interval': '1m', schema: 'bbo-1m' },
+      $match: { ts_event: { $gte: t('09:30', 1), $lte: t('16:00', 1) }, 'meta.symbol': symbol, 'meta.interval': '1m', schema: 'bbo-1m' },
     }, {
       $setWindowFields: {
         sortBy: { ts_event: 1 },
@@ -102,6 +102,15 @@ const agg = (client) => throttle(async (doc) => {
       $project: { _id: 0, etTimeOfDay: 1, bidH: '$_id.bidH', askL: '$_id.askL' },
     }, {
       $sort: { etTimeOfDay: 1 },
+    }],
+    nextDayMOC: [{
+      $match: { ts_event: { $gte: t('09:30', 1), $lte: t('16:00', 1) }, 'meta.symbol': symbol, 'meta.interval': '1m', schema: 'bbo-1m' },
+    }, {
+      $group: {
+        _id: undefined,
+        bid: { $last: '$bid' },
+        ask: { $last: '$ask' },
+      },
     }],
   };
   const res = Object.fromEntries(await Promise.all(Object.entries(aggs).map(async ([k, v]) =>
