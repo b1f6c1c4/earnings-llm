@@ -39,10 +39,9 @@ const writeDb = (client) => (line) => {
   const lines = file.split('\n');
   console.log(`working on ${lines.length} documents`);
   const coll = client.db().collection('llm_outputs');
-  console.log(lines.flatMap(writeDb(client)));
-  // await coll.insertMany(lines.flatMap(writeDb(client)), {
-  //   ordered: false,
-  // });
+  await coll.insertMany(lines.flatMap(writeDb(client)), {
+    ordered: false,
+  });
   console.log('finishing');
   await client.close();
 })();

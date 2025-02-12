@@ -12,6 +12,7 @@ const parse = async (client, res) => {
     '_id.quarter': res._id.quarter,
   });
   o.optimal = doc.optimal;
+  o.date = doc.date;
 
   if (!res.order) {
     o.error = 'no order detected';
