@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 require('dotenv').config();
 const fs = require('node:fs/promises');
 const { default: pThrottle } = require('p-throttle');

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 require('dotenv').config();
 const { default: pThrottle } = require('p-throttle');
 const { MongoClient } = require('mongodb');

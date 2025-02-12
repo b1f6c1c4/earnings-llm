@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 require('dotenv').config();
 const { MongoClient } = require('mongodb');
 const { SimpleLinearRegression } = require('ml-regression-simple-linear');

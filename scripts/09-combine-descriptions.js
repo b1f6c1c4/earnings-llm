@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 require('dotenv').config();
 const { MongoClient } = require('mongodb');
 const fs = require('node:fs/promises');
