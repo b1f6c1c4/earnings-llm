@@ -5,6 +5,11 @@ const { SimpleLinearRegression } = require('ml-regression-simple-linear');
 
 const client = new MongoClient(process.env.MONGO_URL);
 
+const goodExamples = [
+  { symbol: 'TER', quarter: '2024Q4' }, // BUY +$200,000 of TER; SELL LMT +11.30% STP -0.24%
+  { symbol: 'TRNS', quarter: '2025Q3' }, // SELL -$186,800 of TRNS; BUY LMT -10.84% STP +0.27%
+  { symbol: 'CMPR', quarter: '2025Q2' }, // DO NOT TRADE CMPR
+];
 
 (async () => {
   await client.connect();
@@ -21,7 +26,7 @@ const client = new MongoClient(process.env.MONGO_URL);
       },
     },
   }, {
-    $project: {
+    $addFields: {
       asExample: { $concat: [
         '$descriptions.earnings', '\n',
         '$descriptions.past', '\n',
@@ -41,7 +46,10 @@ const client = new MongoClient(process.env.MONGO_URL);
     },
   }]).toArray();
   console.log(`working on ${docs.length} documents`);
-  await fs.writeFile('descriptions.json', JSON.stringify(docs, null, 2));
+  await fs.mkdir('desc', { recursive: true });
+  await Promise.all(docs.map(doc => fs.writeFile(`desc/${doc._id.symbol}_${doc._id.quarter}.example.txt`, doc.asExample)));
+  await Promise.all(docs.map(doc => fs.writeFile(`desc/${doc._id.symbol}_${doc._id.quarter}.question.txt`, doc.asQuestion)));
+  await fs.writeFile('desc/full.json', JSON.stringify(docs, null, 2));
   console.log('finishing');
   await client.close();
 })();

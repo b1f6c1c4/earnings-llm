@@ -100,7 +100,7 @@ const loadPrice = (client) => async ([symbol, index]) => {
   await Promise.all(Object.entries({
     SPY: 'S & P 500',
     DIA: 'Dow Jones',
-    IWM: 'Russel 2000',
+    IWM: 'Russell 2000',
     QQQ: 'Nasdaq 100',
   })
     .map(loadPrice(client)));

@@ -23,7 +23,7 @@ const compare = (a, e) => {
   return 'met';
 };
 
-const indexes = ['S & P 500', 'Russel 2000', 'Dow Jones', 'Nasdaq 100'];
+const indexes = ['S & P 500', 'Russell 2000', 'Dow Jones', 'Nasdaq 100'];
 
 const percent = (r) => `${(100 * r).toFixed(2)}%`;
 
@@ -48,7 +48,7 @@ const analysis = (X, y) => {
 
 const describeEarnings = (coll) => async (doc) => {
   let s = '';
-  s += `Yesterday, a public-traded company (symbol: ${doc._id.symbol}) reported their ${doc._id.quarter} quarterly earnings on a ${moment(doc.date).format('dddd')}, after the market closing bell.`;
+  s += `Yesterday, a publicly traded company (symbol: ${doc._id.symbol}) reported their ${doc._id.quarter} quarterly earnings on a ${moment(doc.date).format('dddd')}, after the market closing bell.`;
   s += ` The company reported earnings of $${doc.epsActual.toFixed(2)} per share which `;
   s += compare(doc.epsActual, doc.epsEstimate);
   s += ` the analyst consensus estimate of $${doc.epsEstimate}`
@@ -164,6 +164,8 @@ const describePast = (coll) => async (doc) => {
     else
       s += ', moving in line with the stock market.';
   }
+  const avgVolume = doc.past.reduce((sum, v) => sum + v.volume, 0) / doc.past.length;
+  s += ` The daily trading volume was approximately ${fmt(avgVolume)}.`;
   s += '\n';
 
   await coll.updateOne({ _id: doc._id }, {
@@ -173,7 +175,7 @@ const describePast = (coll) => async (doc) => {
 
 const describeEarningDay = (coll) => async (doc) => {
   let s = '';
-  s += `Yesterday, which is the day when the after-bell earnings are scheduled, the company's stock `;
+  s += `Yesterday, which was the day when the after-bell earnings are scheduled, the company's stock `;
   const op = doc.earningDay[0].open;
   const cl = doc.earningDay[doc.earningDay.length - 1].close;
   {
@@ -189,12 +191,12 @@ const describeEarningDay = (coll) => async (doc) => {
   for (const v of doc.earningDay) {
     if (v.etTimeOfDay < 10 * 60 || v.etTimeOfDay > 15.5 * 60)
       continue;
-    s += `At ${toTime(v.etTimeOfDay)}, the stock was trading at ${v.mark.toFixed(2)},`;
+    s += `At ${toTime(v.etTimeOfDay)}, the stock was trading at ${v.mark.toFixed(2)}`;
     const rate = v.lgMark - Math.log10(op);
     if (rate > Math.log10(1.001))
-      s += ` up by ${lgToPercent(rate)}.\n`;
+      s += `, up by ${lgToPercent(rate)}.\n`;
     else if (rate < -Math.log10(1.001))
-      s += ` down by ${lgToPercent(-rate)}.\n`;
+      s += `, down by ${lgToPercent(-rate)}.\n`;
     else
       s += `.\n`;
   }
@@ -210,11 +212,23 @@ const describeEarningDay = (coll) => async (doc) => {
     s += ' and';
     rate = cl / op;
     if (rate > 1.001)
-      s += ` up by ${percent(rate-1)} relative to opening price.\n`;
+      s += ` up by ${percent(rate-1)} relative to opening price.`;
     else if (rate < 0.999)
-      s += ` down by ${percent(1/rate-1)} relative to opening price.\n`;
+      s += ` down by ${percent(1/rate-1)} relative to opening price.`;
     else
-      s += ` the same as opening price.\n`;
+      s += ` the same as opening price.`;
+  }
+  {
+    const avgVolume = doc.past.reduce((sum, v) => sum + v.volume, 0) / doc.past.length;
+    const edVolume = doc.earningDay.reduce((sum, v) => sum + v.volume, 0);
+    s += ` The trading volume was ${fmt(edVolume)},`;
+    const rate = edVolume / avgVolume;
+    if (rate > 1.01)
+      s += ` ${percent(rate-1)} more than average.\n`;
+    else if (rate < 0.99)
+      s += ` ${percent(1/rate-1)} less than average.\n`;
+    else
+      s += ` about the same as average.\n`;
   }
 
   await coll.updateOne({ _id: doc._id }, {
@@ -225,7 +239,7 @@ const describeEarningDay = (coll) => async (doc) => {
 const describeAfterMarket = (coll) => async (doc) => {
   let s = '';
   const cl = doc.earningDay[doc.earningDay.length - 1].close;
-  s += `After the closing bell, the company reported their earning data through an earning call. The market's reaction during yesterday's after-market EXT hours was: (all up/down values are relative to yesterday's closing price, ${cl.toFixed(2)})\n`;
+  s += `After the closing bell, the company reported their earnings data through an earnings call. The market's reaction during yesterday's after-market EXT hours was: (all up/down values are relative to yesterday's closing price, ${cl.toFixed(2)})\n`;
   for (const v of doc.afterMarket) {
     s += `Around ${toTime(v.etTimeOfDay + 30)}, the stock was trading at ${v.mark.toFixed(2)},`;
     const rate = v.lgMark - Math.log10(cl);
@@ -245,7 +259,7 @@ const describeAfterMarket = (coll) => async (doc) => {
 const describePreMarket = (coll) => async (doc) => {
   let s = '';
   const cl = doc.earningDay[doc.earningDay.length - 1].close;
-  s += `After some EXTO trading activitities, today, the market's reaction during today's pre-market EXT hours was: (all up/down values are relative to yesterday's regular-hours closing price, ${cl.toFixed(2)})\n`;
+  s += `After some EXTO trading activities, today, the market's reaction during today's pre-market EXT hours was: (all up/down values are relative to yesterday's regular-hours closing price, ${cl.toFixed(2)})\n`;
   for (const v of doc.preMarket) {
     s += `Around ${toTime(v.etTimeOfDay + 15)}, the stock was trading at ${v.mark.toFixed(2)},`;
     const rate = v.lgMark - Math.log10(cl);
@@ -262,25 +276,29 @@ const describePreMarket = (coll) => async (doc) => {
   });
 };
 
-const askQuestion = (coll) => async (doc) => {
+const promptPrefix = (coll) => async (doc) => {
   let s = '';
-  s += `It's 09:15AM now, and you have to predict today's market reaction to yesterday's after-bell earning report from ${doc._id.symbol}, starting from market opening at 09:30AM.
-1. You must determine if you would buy long at 09:30AM, sell short at 09:30AM, or not trading this stock today. However, since you are a short-term day trader, you have to close your position by the end of today (excluding EXT hours), whether you profit or lose.
-2. You must properly size your order, assume you can use at most 4x lever on a $50,000 capital. Your risk tolerance is moderate, and seeks short-term growth opportunities. You can express your position size either in number of stocks or a dollar amount.
-3. You must determine both the price target (LMT) for ${doc._id.symbol} and a stop-loss price (STP). Either value could be expressed as a dollar amount (@) OR a signed percentage (%).
+  s += `# Context
+You are a short-term day trader on 4x lever with $50,000 capital. It's 09:15AM now, and you have to predict today's market reaction to yesterday's after-bell earnings report from ${doc._id.symbol}, starting from market opening at 09:30AM.
 
-For example, your example output could be one of the following 5:
-BUY +500 ${doc._id.symbol}; SELL LMT @90.00 STP -1%
-SELL -200 ${doc._id.symbol}; BUY LMT -3% STP @89.46
-SELL $3,000 of ${doc._id.symbol}; BUY LMT @30.00 STP -1%
-BUY $60,000 of ${doc._id.symbol}; SELL LMT +2% STP @37.41
+# Task
+1. You must determine if you would buy long at 09:30AM, sell short at 09:30AM, or not trading ${doc._id.symbol} today. Be aware that you have to close all of your position by the end of today (excluding EXT hours), whether you profit or lose.
+2. You must properly size your order, risk at most 1% of your capital. You must express your position in a dollar amount.
+3. You must determine both the price target (LMT) for ${doc._id.symbol} and a stop-loss price (STP). Either value could be expressed as a dollar amount (@) OR a signed percentage (%).
+4. You must conclude your reasoning with a single line of trade order.
+
+# Example: Some valid trade orders
+
+BUY +$27,400 ${doc._id.symbol}; SELL LMT @90.00 STP -1%
+SELL -$82,300 ${doc._id.symbol}; BUY LMT -3% STP @89.46
+SELL -$3,000 of ${doc._id.symbol}; BUY LMT @30.00 STP -1%
+BUY +$60,000 of ${doc._id.symbol}; SELL LMT +2% STP @37.41
 DO NOT TRADE ${doc._id.symbol}
 
-Now, make the decision on ${doc._id.symbol}.
 `;
 
   await coll.updateOne({ _id: doc._id }, {
-    $set: { 'descriptions.question': s },
+    $set: { 'descriptions.prefix': s },
   });
 };
 
@@ -351,9 +369,9 @@ const describeNextDay = (coll) => async (doc) => {
       s += `, not moved much from today's opening price`;
     rate = Math.log10(last) - Math.log10(llast);
     if (rate > Math.log10(1.001))
-      s += `, and up by ${lgToPercent(rate)} from today's closing price before earning call.`;
+      s += `, and up by ${lgToPercent(rate)} from yesterday's closing price before earning call.`;
     else if (rate < -Math.log10(1.001))
-      s += `, and down by ${lgToPercent(-rate)} from today's closing price before earning call.`;
+      s += `, and down by ${lgToPercent(-rate)} from yesterday's closing price before earning call.`;
     else
       s += `, and not moved much from yesterday's closing price before earning call.`;
   }
@@ -362,14 +380,20 @@ const describeNextDay = (coll) => async (doc) => {
   const last = doc.nextDayBooks[doc.nextDayBooks.length - 1];
   const profitL = last.bidH / first.askL - 1;
   const profitS = 1 - last.askL / first.bidH;
+  const capital = 50000;
+  const riskFactor = 0.01;
+  const lever = 4;
+  let profit = 0;
+  let order;
+  let p = 0;
   if (profitL > profitS && profitL > 0.001) {
     const tp = first.askL;
     const [risk, tod] = maxRisk(doc.nextDayBooks, tp, +1);
-    s += ` If a trader entered a long position BUY at ${tp} around 09:30AM,`;
-    s += ` set the price target to at most LMT @${last.bidH},`;
-    s += ` set the stop loss at least STP @${risk},`;
+    s += `If a trader entered a long position BUY at ${tp} around 09:30AM,`;
+    s += ` set the price target to at most ${last.bidH},`;
+    s += ` set the stop loss at least ${risk},`;
     s += ` they could reap ${percent(profitL)} profit by ${toTime(tod)}`;
-    if (risk > tp) s += ` as long as they can tolerate ${percent(risk/tp-1)} risk.`;
+    if (risk < tp) s += ` as long as they can tolerate ${percent(1-risk/tp)} risk.`;
     else s += '.';
     const moc = doc.nextDayMOC[0].bid;
     s += ` Setting price target beyond ${last.bidH} would result in ${percent(moc/tp-1)}`;
@@ -377,10 +401,16 @@ const describeNextDay = (coll) => async (doc) => {
       s += ' loss.\n';
     else
       s += ' profit.\n';
+    s += 'The final trade order would be:\n';
+    p = Math.min(capital * lever / tp, riskFactor * capital / (tp - 0.998*risk) / 1.2);
+    order = `BUY +$${(Math.floor(p * tp / 100) * 100).toLocaleString(0)} of ${doc._id.symbol};`;
+    order += ` SELL LMT +${percent(profitL*0.85)} STP -${percent((1-0.998*risk/tp)*1.2)}`
+    profit = p * tp * profitL * 0.85;
+    s += order + '\n';
   } else if (profitS > profitL && profitS > 0.001) {
     const tp = first.bidH;
     const [risk, tod] = maxRisk(doc.nextDayBooks, tp, -1);
-    s += ` If a trader entered short position SELL at ${tp} around 09:30AM,`;
+    s += `If a trader entered short position SELL at ${tp} around 09:30AM,`;
     s += ` set the price target to at most LMT @${last.askL},`;
     s += ` set the stop loss at least STP @${risk},`;
     s += ` they could reap ${percent(profitS)} profit by ${toTime(tod)}`;
@@ -392,12 +422,30 @@ const describeNextDay = (coll) => async (doc) => {
       s += ' loss.\n';
     else
       s += ' profit.\n';
+    s += 'The final trade order would be:\n';
+    p = Math.min(capital * lever / tp, riskFactor * capital / (1.002*risk - tp) / 1.2);
+    order = `SELL -$${(Math.floor(p * tp / 100) * 100).toLocaleString(0)} of ${doc._id.symbol};`;
+    order += ` BUY LMT -${percent(profitS*0.85)} STP +${percent((1.002*risk/tp-1)*1.2)}`
+    profit = p * tp * profitS * 0.85;
+    s += order + '\n';
   } else {
-    s += `No trader could theoretically make profit at all from today's market because of the wide spread and lack of stock price movement.`;
+    s += `No trader could theoretically make any profit from today's market because of the wide spread and lack of stock price movement.\n`;
+    s += 'The final trade order would be:\n';
+    order = `DO NOT TRADE ${doc._id.symbol}`;
+    s += order + '\n';
   }
 
   await coll.updateOne({ _id: doc._id }, {
-    $set: { 'descriptions.nextDay': s },
+    $set: {
+      'descriptions.nextDay': s,
+      optimal: {
+        order,
+        p,
+        profit,
+        profitL,
+        profitS,
+      },
+    },
   });
 };
 
@@ -422,7 +470,7 @@ const describeNextDay = (coll) => async (doc) => {
     Promise.all(docs.map(describeAfterMarket(earnings_cleaned))),
     Promise.all(docs.map(describePreMarket(earnings_cleaned))),
     Promise.all(docs.map(describeNextDay(earnings_cleaned))),
-    Promise.all(docs.map(askQuestion(earnings_cleaned))),
+    Promise.all(docs.map(promptPrefix(earnings_cleaned))),
   ]);
   console.log('finishing');
   await client.close();
