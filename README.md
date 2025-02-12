@@ -33,6 +33,7 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
     - `MONGO_URL`
     - `DATABENTO_API_KEY`
     - `GEMINI_API_KEY`
+    - `GROQ_API_KEY`
 
 3. Run the scripts in the specific order. Note that on Linux you can use:
 
@@ -85,7 +86,7 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
         - reads from MongoDB collection `earnings.earnings_cleaned`
         - writes to files in `desc/<symbol>_<quarter>*.txt`
 
-    10. `node scripts/10-query-gemini.js`: For each LLM prompt, invoke Gemini API to get answer (both 1.5 and 2.0 version are used)
+    10. `node scripts/10-query-llms.js`: For each LLM prompt, invoke many different LLM API to get answer (Gemini + GroqCloud)
 
         - reads from files in `desc/<symbol>_<quarter>*.txt`
         - writes to MongoDB collection `earnings.llm_outputs`
