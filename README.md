@@ -90,7 +90,12 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
         - reads from files in `desc/<symbol>_<quarter>*.txt`
         - writes to MongoDB collection `earnings.llm_outputs`
 
-    11. `node scripts/11-parse-order.js`: For each LLM output, parse the requested trade order, and output the net profit from such trade
+    11. `node scripts/11-import-output.js`: Some LLM does not have an open API or are too expensive - we need to manually collect the data, form a `*.tsv` file, and then feed to MongoDB
+
+        - reads from the file specified by the command line arguments
+        - writes to MongoDB collection `earnings.llm_outputs`
+
+    12. `node scripts/12-parse-order.js`: For each LLM output, parse the requested trade order, and output the net profit from such trade
 
         - reads from MongoDB collection `earnings.llm_outputs`
         - writes to MongoDB collection `earnings.llm_outputs`

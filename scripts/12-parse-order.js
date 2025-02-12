@@ -14,16 +14,16 @@ const parse = async (client, res) => {
   o.optimal = doc.optimal;
 
   if (!res.order) {
-    p.error = 'no order detected';
+    o.error = 'no order detected';
     return o;
   }
   const match = res.order.match(/^(?<side>BUY|SELL)\s+(?<position>[+-]\$?[0-9,]+\.?[0-9]*)\s+(?:of\s+)?(?<symbol>[A-Z]+);\s*(?:BUY|SELL)\s+LMT\s+(?<limit>@?\$?[0-9]+\.?[0-9]*|[+-][0-9]+\.?[0-9]*%)\s+STP\s+(?<stop>@?\$?[0-9]+\.?[0-9]*|[+-][0-9]+\.?[0-9]*%)$|^DO NOT TRADE (?<symbol>[A-Z]+)$/);
   if (!match) {
-    p.error = 'order syntax error';
+    o.error = 'order syntax error';
     return o;
   }
   if (match.groups.symbol !== res._id.symbol) {
-    p.error = 'symbol not matching';
+    o.error = 'symbol not matching';
     return o;
   }
   if (match.groups.side === undefined) {
@@ -34,12 +34,12 @@ const parse = async (client, res) => {
     return o;
   }
   if (match.groups.position.startsWith('$')) {
-    p.error = 'position not specified in dollar amount';
+    o.error = 'position not specified in dollar amount';
     return o;
   }
   p.position = +match.groups.position.replaceAll(/[\$,]/g, '');
   if (!p.position) {
-    p.error = 'invalid position';
+    o.error = 'invalid position';
     return o;
   }
 
@@ -48,24 +48,24 @@ const parse = async (client, res) => {
     : doc.nextDayBooks[0].bidH;
   if (match.groups.side === 'BUY') {
     if (p.position <= 0) {
-      p.error = 'position sign error';
+      o.error = 'position sign error';
       return o;
     }
     p.side = 'BUY';
     p.shares = Math.floor(p.position / p.price);
     if (!p.shares) {
-      p.error = 'buying less than 1 share';
+      o.error = 'buying less than 1 share';
       return o;
     }
   } else if (match.groups.side === 'SELL') {
     if (p.position >= 0) {
-      p.error = 'position sign error';
+      o.error = 'position sign error';
       return o;
     }
     p.side = 'SELL';
     p.shares = -Math.floor(-p.position / p.price);
     if (!p.shares) {
-      p.error = 'selling less than 1 share';
+      o.error = 'selling less than 1 share';
       return o;
     }
   } else {
@@ -83,15 +83,15 @@ const parse = async (client, res) => {
     p.limit = +match.groups.limit.replace(/^@/, '');
   }
   if (isNaN(p.limit)) {
-    p.error = 'syntax error';
+    o.error = 'syntax error';
     return o;
   }
   if (p.shares > 0 && p.limit < p.price) {
-    p.error = 'sell limit too low';
+    o.error = 'sell limit too low';
     return o;
   }
   if (p.shares < 0 && p.limit > p.price) {
-    p.error = 'buy-to-cover limit too high';
+    o.error = 'buy-to-cover limit too high';
     return o;
   }
   if (match.groups.stop.endsWith('%')) {
@@ -104,15 +104,15 @@ const parse = async (client, res) => {
     p.stop = +match.groups.stop.replace(/^@/, '');
   }
   if (isNaN(p.stop)) {
-    p.error = 'syntax error';
+    o.error = 'syntax error';
     return o;
   }
   if (p.shares > 0 && p.stop > p.price) {
-    p.error = 'sell stop too high';
+    o.error = 'sell stop too high';
     return o;
   }
   if (p.shares < 0 && p.stop < p.price) {
-    p.error = 'buy-to-cover stop too low';
+    o.error = 'buy-to-cover stop too low';
     return o;
   }
 
@@ -135,7 +135,7 @@ const parse = async (client, res) => {
       };
       const book = await client.db().collection('prices_cleaned').findOne(info);
       if (!book) {
-        p.error = 'cannot find book info';
+        o.error = 'cannot find book info';
         p.info = info;
         return o;
       }
