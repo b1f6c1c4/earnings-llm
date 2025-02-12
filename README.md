@@ -18,3 +18,74 @@ At the 9:30 AM market open, another sharp movement occurs. The key question is w
 **References:**
 
 Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://www.nasdaq.com/articles/earnings-announcements-sliced-and-diced)
+
+## Steps to reproduce the results
+
+1. Install npm packages:
+
+    ```bash
+    npm ci
+    ```
+
+2. Setting up environment variables
+
+    - `FINNHUB_API_KEY`
+    - `MONGO_URL`
+    - `DATABENTO_API_KEY`
+    - `GEMINI_API_KEY`
+
+3. Run the scripts in the specific order:
+
+    1. `node scripts/download-earnings.js`: Download 1-month company earnings data from Finnhub
+
+        - writes to MongoDB collection `earnings.earnings`
+
+    2. `node scripts/download-index.js`: Download 1-month stock index data from Databento
+
+        - writes to MongoDB timeseries `earnings.stock_indexes`
+
+    3. `node scripts/download-symbols.js`: Download stock symbol data from Databento
+
+        - writes to MongoDB collection `earnings.symbols`
+
+    4. `node scripts/download-ohlcv.js`: Download historical stock price (bid, ask, trade) data from Databento, including EXT hours
+
+        - writes to MongoDB collection `earnings.prices`
+
+    5. `node scripts/unify-symbols.js`: Tranform downloaded stock symbol data to filter out actively traded U.S. stocks.
+
+        - reads from MongoDB collection `earnings.symbols`
+        - writes to MongoDB collection `earnings.symbol_ids`
+
+    6. `node scripts/transform-price.js`: Transform downloaded stock price data into MongoDB timeseries for faster, easier processing
+
+        - reads from MongoDB collection `earnings.prices`
+        - writes to MongoDB timeseries `earnings.prices_cleaned`
+
+    7. `node scripts/transform-earnings.js`: Combine earnings data with stock prices data, computing key stock metrics
+
+        - reads from MongoDB collection `earnings.earnings`
+        - reads from MongoDB timeseries `earnings.stock_indexes`
+        - reads from MongoDB timeseries `earnings.prices_cleaned`
+        - writes to MongoDB collection `earnings.earnings_cleaned`
+
+    8. `node scripts/generate-descriptions.js`: For each earnings incident, generate a comprehensive, textual report briefing the historical stock price movement as well as intraday/after-market/pre-market trading activities before and after the earnings release
+
+        - reads from MongoDB collection `earnings.earnings_cleaned`
+        - writes to MongoDB collection `earnings.earnings_cleaned`
+
+    9. `node scripts/combine-descriptions.js`: Part all valid earnings data into examples (n=3) and test (n=120), then compile LLM prompts for making predictions on each of the test data
+
+        - reads from MongoDB collection `earnings.earnings_cleaned`
+        - writes to files in `desc/<symbol>_<quarter>*.txt`
+
+    10. `node scripts/query-gemini.js`: For each LLM prompt, invoke Gemini API to get answer (both 1.5 and 2.0 version are used)
+
+        - reads from files in `desc/<symbol>_<quarter>*.txt`
+        - writes to MongoDB collection `earnings.llm_outputs`
+
+    11. `node scripts/parse-order.js`: For each LLM output, parse the requested trade order, and output the net profit from such trade
+
+        - reads from MongoDB collection `earnings.llm_outputs`
+        - writes to MongoDB collection `earnings.llm_outputs`
+
