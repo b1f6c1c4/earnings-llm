@@ -20,11 +20,23 @@ const parse = async (client, res) => {
     o.optimal.side = 'NEITHER';
   o.date = doc.date;
 
+  const reg = /(?<side>BUY|SELL)\s+(?<position>[+-]\$?[0-9,]+\.?[0-9]*)\s+(?:of\s+)?(?<symbol>[A-Z]+);\s*(?:BUY|SELL)?\s+LMT\s+@?(?<limit>\$?[0-9]+\.?[0-9]*|[+-][0-9]+\.?[0-9]*%)\s+STP\s+@?(?<stop>\$?[0-9]+\.?[0-9]*|[+-][0-9]+\.?[0-9]*%)|DO NOT TRADE (?<symbol>[A-Z]+)/;
+  if (res.text) {
+    const matches = [...res.text.matchAll(new RegExp(reg, 'mg'))];
+    if (matches.length === 0) {
+      o.error = 'no valid order detected';
+      return o;
+    }
+    if (matches.length > 1) {
+      o.orders = matches.map(m => m[0]);
+    }
+    res.order = matches[matches.length - 1][0];
+  }
   if (!res.order) {
     o.error = 'no order detected';
     return o;
   }
-  const match = res.order.match(/^(?<side>BUY|SELL)\s+(?<position>[+-]\$?[0-9,]+\.?[0-9]*)\s+(?:of\s+)?(?<symbol>[A-Z]+);\s*(?:BUY|SELL)\s+LMT\s+(?<limit>@?\$?[0-9]+\.?[0-9]*|[+-][0-9]+\.?[0-9]*%)\s+STP\s+(?<stop>@?\$?[0-9]+\.?[0-9]*|[+-][0-9]+\.?[0-9]*%)$|^DO NOT TRADE (?<symbol>[A-Z]+)$/);
+  const match = res.order.match(reg);
   if (!match) {
     o.error = 'order syntax error';
     return o;
@@ -86,9 +98,9 @@ const parse = async (client, res) => {
     if (p.shares > 0)
       p.limit = p.price * (1 + p.limit / 100);
     else
-      p.limit = p.price * (1 - p.limit / 100);
+      p.limit = p.price * (1 + p.limit / 100);
   } else {
-    p.limit = +match.groups.limit.replace(/^@/, '');
+    p.limit = +match.groups.limit;
   }
   if (isNaN(p.limit)) {
     o.error = 'syntax error';
@@ -107,9 +119,9 @@ const parse = async (client, res) => {
     if (p.shares > 0)
       p.stop = p.price * (1 + p.stop / 100);
     else
-      p.stop = p.price * (1 - p.stop / 100);
+      p.stop = p.price * (1 + p.stop / 100);
   } else {
-    p.stop = +match.groups.stop.replace(/^@/, '');
+    p.stop = +match.groups.stop;
   }
   if (isNaN(p.stop)) {
     o.error = 'syntax error';
