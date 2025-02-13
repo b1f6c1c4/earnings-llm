@@ -21,7 +21,11 @@ const svg = (idx) => (doc, index) => {
       <text x="${x-s.length*5/2*0.60}" y="-1.5" font-size="5" fill="black" transform="rotate(90,${x},0)">${s}</text>
 `;
   }
-  const y = -4e2 * doc.return;
+  let y = -4e2 * doc.return;
+  if (y < -120)
+    y= -120;
+  if (y > +120)
+    y= +120;
   const radius = getR(doc.profit);
   const color = doc.profit < 0 ? '#ff0000' : '#00ff00';
   const fs = Math.min(Math.max(radius, 6), 10);
@@ -113,7 +117,7 @@ function headline(symbol, docs) {
     ${res.map(({ _id, docs }) => `
     <div>
       ${headline(_id, docs)}
-      <svg width="100%" viewBox="-30 -90 ${34+8*len} 220">
+      <svg width="100%" viewBox="-30 -90 ${34+8*len} 210">
         <line x1="-17" y1="-40" y2="+40" x2="-17" stroke="#333e" />
         <line x1="-23" y1="-40" y2="-40" x2="-11" stroke="#333e" />
         <line x1="-23" y1="+40" y2="+40" x2="-11" stroke="#333e" />

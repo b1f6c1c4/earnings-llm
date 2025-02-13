@@ -136,7 +136,8 @@ const parse = async (client, res) => {
     return o;
   }
 
-  for (const v of doc.nextDayBooks) {
+  for (let i = 1; i < doc.nextDayBooks.length; i++) {
+    const v = doc.nextDayBooks[i];
     if (p.shares > 0 && v.bidH >= p.limit) {
       o.exit = { time: v.etTimeOfDay, price: v.bidH, type: 'SOLD LMT' };
       break;
