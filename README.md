@@ -25,7 +25,9 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
 
     ```bash
     npm ci
-    pip install -r requirements.txt
+    virtualenv venv
+    . ./venv/bin/activate
+    pip install jupyter
     ```
 
 2. Setting up environment variables, put it in file `.env`
@@ -114,4 +116,8 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
         - writes to file `visual/data.csv`
         - writes to file `visual/data.json`
 
-4. Execute the Jupyter Notebook file `scripts/15-data-visualizations.ipynb`
+4. Open the Jupyter Notebook file `scripts/15-data-visualizations.ipynb` and follow directions
+
+    ```bash
+    jupyter lab --ip 0.0.0.0 --no-browser
+    ```
