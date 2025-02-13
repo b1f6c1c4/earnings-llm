@@ -38,6 +38,7 @@ const parse = async (client, res) => {
     p.position = 0;
     o.profit = 0;
     o.return = 0;
+    o.error = null;
     return o;
   }
   if (match.groups.position.startsWith('$')) {
@@ -172,15 +173,10 @@ const parse = async (client, res) => {
 
 const client = new MongoClient(process.env.MONGO_URL);
 
-//             buySellPattern: '(BUY|SELL)',
-//             amountPattern: '([+-]?\\$?[0-9,]+(?:\\.[0-9]{2})?)',
-//             orderPattern: '(@[0-9]+\\.?[0-9]*|[+-]?[0-9]+%)',
 (async () => {
   await client.connect();
   const coll = client.db().collection('llm_outputs');
-  const res = await coll.find({
-    order: { $ne: null },
-  }).toArray();
+  const res = await coll.find({}).toArray();
   console.log(`working on ${res.length} documents`);
   await Promise.all(res.map(async (r) => coll.updateOne({ _id: r._id }, {
     $set: await parse(client, r),

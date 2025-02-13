@@ -34,6 +34,7 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
     - `DATABENTO_API_KEY`
     - `GEMINI_API_KEY`
     - `GROQ_API_KEY`
+    - `OLLAMA_URL`
 
 3. Run the scripts in the specific order. Note that on Linux you can use:
 
@@ -86,7 +87,7 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
         - reads from MongoDB collection `earnings.earnings_cleaned`
         - writes to files in `desc/<symbol>_<quarter>*.txt`
 
-    10. `node scripts/10-query-llms.js`: For each LLM prompt, invoke many different LLM API to get answer (Gemini + GroqCloud)
+    10. `node scripts/10-query-llms.js`: For each LLM prompt, invoke many different LLM API to get answer (Gemini + GroqCloud + Ollama)
 
         - reads from files in `desc/<symbol>_<quarter>*.txt`
         - writes to MongoDB collection `earnings.llm_outputs`
@@ -100,4 +101,9 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
 
         - reads from MongoDB collection `earnings.llm_outputs`
         - writes to MongoDB collection `earnings.llm_outputs`
+
+    13. `node scripts/13-visualize-timeline.js`: For each LLM, organize profit/loss into a timeline for easier visualization
+
+        - reads from MongoDB collection `earnings.llm_outputs`
+        - writes to file `visual/timeline.html`
 
