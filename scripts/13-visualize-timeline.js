@@ -35,26 +35,22 @@ const svg = (idx) => (doc, index) => {
 function headline(symbol, docs) {
   let num;
   let cls;
-  let avg;
   const t = docs.reduce((s, d) => d.entry.side !== 'NEITHER' ? s + 1 : s, 0);
-  const profit = docs.reduce((s, d) => s + d.profit, 0);
+  const profit = docs.reduce((s, d) => s + d.profit, 0) / docs.length;
   if (profit > 0) {
     cls = 'profit';
     num = `+$${Math.round(profit).toLocaleString(0)}  +${(100*profit/5e4).toFixed(2)}%`;
-    avg = `+$${Math.round(profit/t).toLocaleString(0)}`;
   } else if (profit < 0) {
     cls = 'loss';
     num = `-$${Math.round(-profit).toLocaleString(0)}  -${(-100*profit/5e4).toFixed(2)}%`;
-    avg = `-$${Math.round(-profit/t).toLocaleString(0)}`;
   } else {
     cls = 'neutral';
     num = '±$0  ±0.00%';
-    avg = '±$0';
   }
   return `<div class="headline">
   <h1>${symbol}</h1>
-  <h2 class="${cls}">${num}</h2>
-  <h3>${docs.length} outputs&nbsp;&nbsp;${t} trades&nbsp;&nbsp;${avg}/trade</h3>
+  <h2>avg. <span class="${cls}">${num}</span></h2>
+  <h3>${docs.length} decisions&nbsp;&nbsp;${t} trades</h3>
 </div>`;
 }
 
@@ -102,6 +98,9 @@ function headline(symbol, docs) {
       * { margin: 0; padding: 0; }
       div { position: relative; width: 100%; }
       .headline { position: absolute; width: 100%; }
+      @media print {
+        .headline { display: flex; justify-content: space-evenly; }
+      }
       h1 { text-align: center; font-size: 23px; }
       h2 { text-align: center; font-size: 20px; }
       h3 { text-align: center; font-size: 18; }
@@ -114,7 +113,7 @@ function headline(symbol, docs) {
     ${res.map(({ _id, docs }) => `
     <div>
       ${headline(_id, docs)}
-      <svg width="100%" viewBox="-30 -90 ${34+8*len} 200">
+      <svg width="100%" viewBox="-30 -90 ${34+8*len} 220">
         <line x1="-17" y1="-40" y2="+40" x2="-17" stroke="#333e" />
         <line x1="-23" y1="-40" y2="-40" x2="-11" stroke="#333e" />
         <line x1="-23" y1="+40" y2="+40" x2="-11" stroke="#333e" />

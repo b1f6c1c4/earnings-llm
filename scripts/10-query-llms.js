@@ -23,7 +23,13 @@ const invoker = (model, api) => async (fn) => {
   if (await coll.findOne({ _id }))
     return;
   const prompt = await fs.readFile('desc/' + fn, 'utf8');
-  const text = await api(prompt);
+  let text;
+  try {
+    text = await api(prompt);
+  } catch (err) {
+    console.error(err);
+    return;
+  }
   const reg = /DO NOT TRADE .*|BUY .*|SELL .*/mg;
   const mm = text.match(reg);
   if (mm)
@@ -92,10 +98,12 @@ const runOllama = async (model, docs) => {
   console.log(`working on ${dir.length} entries`);
   await Promise.all(dir.map(askGemini('gemini-2.0-flash')));
   await Promise.all(dir.map(askGemini('gemini-1.5-flash')));
-  await runOllama('deepseek-r1:70b', dir);
+  await runOllama('llama3.3:70b', dir);
+  await runOllama('phi4:14b', dir);
   await runOllama('mistral:7b', dir);
+  await runOllama('gemma2:27b', dir);
+  await runOllama('deepseek-r1:70b', dir);
   await runOllama('deepseek-r1:7b', dir);
-  await Promise.all(dir.map(askOllama('llama3.3:70b')));
   // await Promise.all(dir.map(askGroq('llama-3.3-70b-versatile')));
   // await Promise.all(dir.map(askGroq('deepseek-r1-distill-llama-70b')));
   await client.close();
