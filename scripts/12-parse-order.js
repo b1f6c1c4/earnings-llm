@@ -12,6 +12,12 @@ const parse = async (client, res) => {
     '_id.quarter': res._id.quarter,
   });
   o.optimal = doc.optimal;
+  if (doc.optimal.order.startsWith('BUY'))
+    o.optimal.side = 'BUY';
+  else if (doc.optimal.order.startsWith('SELL'))
+    o.optimal.side = 'SELL';
+  else
+    o.optimal.side = 'NEITHER';
   o.date = doc.date;
 
   if (!res.order) {
@@ -44,7 +50,7 @@ const parse = async (client, res) => {
     return o;
   }
 
-  p.price = match.groups.size === 'BUY'
+  p.price = match.groups.side === 'BUY'
     ? doc.nextDayBooks[0].askL
     : doc.nextDayBooks[0].bidH;
   if (match.groups.side === 'BUY') {
@@ -131,8 +137,8 @@ const parse = async (client, res) => {
         schema: 'bbo-1m',
         'meta.symbol': res._id.symbol,
         'meta.interval': '1m',
-        etDate: doc.date,
-        etTimeOfDay: { $gte: v.etTimeOfDay },
+        etDate: new Date(+doc.date + 86400000),
+        etTimeOfDay: v.etTimeOfDay,
       };
       const book = await client.db().collection('prices_cleaned').findOne(info);
       if (!book) {
@@ -159,6 +165,7 @@ const parse = async (client, res) => {
     o.return = o.exit.price / p.price - 1;
   else
     o.return = 1 - o.exit.price / p.price;
+  o.error = null;
   return o;
 };
 

@@ -6,6 +6,8 @@ const fs = require('node:fs/promises');
 
 const client = new MongoClient(process.env.MONGO_URL);
 
+const getR = (v) => 1.0 * Math.pow(Math.abs(v), 0.3);
+
 const svg = (idx) => (doc, index) => {
   let id;
   for (id = 0; id < idx.length; id++)
@@ -20,7 +22,7 @@ const svg = (idx) => (doc, index) => {
 `;
   }
   const y = -4e2 * doc.return;
-  const radius = 1e-1 * Math.sqrt(Math.abs(doc.profit));
+  const radius = getR(doc.profit);
   const color = doc.profit < 0 ? '#ff0000' : '#00ff00';
   const fs = Math.min(Math.max(radius, 6), 10);
   return `
@@ -33,22 +35,26 @@ const svg = (idx) => (doc, index) => {
 function headline(symbol, docs) {
   let num;
   let cls;
+  let avg;
   const t = docs.reduce((s, d) => d.entry.side !== 'NEITHER' ? s + 1 : s, 0);
   const profit = docs.reduce((s, d) => s + d.profit, 0);
   if (profit > 0) {
     cls = 'profit';
     num = `+$${Math.round(profit).toLocaleString(0)}  +${(100*profit/5e4).toFixed(2)}%`;
+    avg = `+$${Math.round(profit/t).toLocaleString(0)}`;
   } else if (profit < 0) {
     cls = 'loss';
     num = `-$${Math.round(-profit).toLocaleString(0)}  -${(-100*profit/5e4).toFixed(2)}%`;
+    avg = `-$${Math.round(-profit/t).toLocaleString(0)}`;
   } else {
     cls = 'neutral';
     num = '±$0  ±0.00%';
+    avg = '±$0';
   }
   return `<div class="headline">
   <h1>${symbol}</h1>
   <h2 class="${cls}">${num}</h2>
-  <h3>${docs.length} valid outputs, ${t} trades</h3>
+  <h3>${docs.length} outputs&nbsp;&nbsp;${t} trades&nbsp;&nbsp;${avg}/trade</h3>
 </div>`;
 }
 
@@ -114,11 +120,11 @@ function headline(symbol, docs) {
         <line x1="-23" y1="+40" y2="+40" x2="-11" stroke="#333e" />
         <text x="-26" y="-45" font-size="12" fill="black">+1%</text>
         <text x="-26" y="+54" font-size="12" fill="black">-1%</text>
-        <circle cx="400" cy="+80" r="${1e-1*Math.sqrt(1000)}" fill="#333e" />
+        <circle cx="400" cy="+80" r="${getR(1000)}" fill="#333e" />
         <text x="404" y="+84" font-size="12" fill="black">=$1,000</text>
-        <circle cx="500" cy="+80" r="${1e-1*Math.sqrt(3000)}" fill="#333e" />
+        <circle cx="500" cy="+80" r="${getR(3000)}" fill="#333e" />
         <text x="508" y="+84" font-size="12" fill="black">=$3,000</text>
-        <circle cx="600" cy="+80" r="${1e-1*Math.sqrt(10000)}" fill="#333e" />
+        <circle cx="600" cy="+80" r="${getR(10000)}" fill="#333e" />
         <text x="612" y="+84" font-size="12" fill="black">=$10,000</text>
         <line x1="-17" y1="0" y2="0" x2="${8*len}" stroke="#7778" />
         ${docs.map(svg(idx)).join('')}

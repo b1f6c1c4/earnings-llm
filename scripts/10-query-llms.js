@@ -23,7 +23,7 @@ const invoker = (model, api) => async (fn) => {
   const prompt = await fs.readFile('desc/' + fn, 'utf8');
   const text = await api(prompt);
   console.log(`got answer from ${model} length ${text.length}`);
-  const reg = /^(DO NOT TRADE .*|BUY .*|SELL .*)/m;
+  const reg = /DO NOT TRADE .*|BUY .*|SELL .*/m;
   const mm = text.match(reg);
   await coll.updateOne({ _id }, {
     $set: {
@@ -58,7 +58,7 @@ const askGroq = (model) => {
   };
   const throttle = pThrottle({
     limit: 1,
-    interval: Math.max(3900 / 6000 * 60000, 1900),
+    interval: 60000,
   });
   return invoker(model, throttle(apiFunc));
 };
