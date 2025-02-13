@@ -21,13 +21,14 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
 
 ## Steps to reproduce the results
 
-1. Install npm packages:
+1. Install npm packages and pip packages:
 
     ```bash
     npm ci
+    pip install -r requirements.txt
     ```
 
-2. Setting up environment variables
+2. Setting up environment variables, put it in file `.env`
 
     - `FINNHUB_API_KEY`
     - `MONGO_URL`
@@ -36,10 +37,10 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
     - `GROQ_API_KEY`
     - `OLLAMA_URL`
 
-3. Run the scripts in the specific order. Note that on Linux you can use:
+3. Run the JavaScript scripts using node.js in the specific order. Note that on Linux you can use:
 
     ```bash
-    run-parts --regex '\.(js|py)$' scripts
+    run-parts --regex '\.js$' scripts
     ```
 
     To run them manually, invoke:
@@ -107,3 +108,10 @@ Mackintosh, Phil. Earnings Announcements Sliced and Diced [nasdaq.com](https://w
         - reads from MongoDB collection `earnings.llm_outputs`
         - writes to file `visual/timeline.html`
 
+    14. `node scripts/14-export-csv.js`: Organize data into CSV for easier python processing
+
+        - reads from MongoDB collection `earnings.llm_outputs`
+        - writes to file `visual/data.csv`
+        - writes to file `visual/data.json`
+
+4. Execute the Jupyter Notebook file `scripts/15-data-visualizations.ipynb`
